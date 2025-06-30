@@ -6,33 +6,45 @@ import datetime
 # curl -X GET https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/39.619280,-105.245377/$(date +'%Y-%m-%dT%H:%M:%S')?key=$VISUAL_CROSSING_API_KEY | jq '.currentConditions' > /home/jacwater/.cache/weather/hourly.json
 
 file_path = "/home/jacwater/.cache/weather/hourly.json"
-ts = {
-    "refresh_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    "date": datetime.datetime.now().strftime("%Y-%m-%d"),
-}
+with open(file_path, 'r') as file:
+    current = json.load(file)
 
-api_key = os.getenv('VISUAL_CROSSING_API_KEY')
-headers = {
-    'content-type': 'application/json',
-}
+time_since_last_refresh = (datetime.datetime.now() - datetime.datetime.strptime(current['refresh_ts'], "%Y-%m-%d %I:%M:%S")).seconds/3600
 
-url = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/39.619280,-105.245377/%s?key=%s" % (datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), api_key)
-weather = requests.get(url, headers=headers).json()['currentConditions']
-attributes = [
-    'temp',
-    'feelslike',
-    'humidity',
-    'precip',
-    'precipprob',
-    'snow',
-    'snowdepth',
-    'preciptype',
-    'conditions'
-]
-weather_details = {key: weather[key] for key in attributes if key in weather}
-weather_details.update(ts)
+if time_since_last_refresh >= 1: 
+    ts = {
+        "refresh_ts": datetime.datetime.now().strftime("%Y-%m-%d %I:%M:%S"),
+        "date": datetime.datetime.now().strftime("%Y-%m-%d"),
+    }
+    datetime.datetime.strptime(current['refresh_ts'], "%Y-%m-%d %I:%M:%S")
 
-# create json file
-with open(file_path, 'w') as f:
-    # Write the data to the file
-    json.dump(weather_details, f, indent=4)
+    api_key = os.getenv('VISUAL_CROSSING_API_KEY')
+    headers = {
+        'content-type': 'application/json',
+    }
+
+    url = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/39.619280,-105.245377/%s?key=%s" % (datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), api_key)
+    weather = requests.get(url, headers=headers).json()['currentConditions']
+    attributes = [
+        'temp',
+        'feelslike',
+        'humidity',
+        'precip',
+        'precipprob',
+        'snow',
+        'snowdepth',
+        'preciptype',
+        'conditions'
+    ]
+    weather_details = {key: weather[key] for key in attributes if key in weather}
+    weather_details.update(ts)
+
+    # create json file
+    with open(file_path, 'w') as f:
+        # Write the data to the file
+        json.dump(weather_details, f, indent=4)
+
+    print('Updating Weather...')
+    print(weather_details)
+else:
+    print('Weather is up-to-date')

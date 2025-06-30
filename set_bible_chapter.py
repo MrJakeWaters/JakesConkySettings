@@ -13,16 +13,18 @@ for bible in bibles:
 # curl -X GET --header "Accept: text/javascript" --header "api-key: $API_BIBLE_KEY" https://api.scripture.api.bible/v1/bibles | jq . > bibles.json
 # curl -X GET "https://api.scripture.api.bible/v1/bibles/06125adad2d5898a-01/books" -H  "accept: application/json" -H  "api-key: $API_BIBLE_KEY" | jq . > books.json
 
+file_path = "/home/jacwater/.cache/bible/daily.json"
+with open(file_path, 'r') as file:
+    current = json.load(file)
+
 output = {
     "refresh_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     "date": datetime.datetime.now().strftime("%Y-%m-%d"),
 }
-file_path = "/home/jacwater/.cache/bible/%s.json" % (output['date'])
 
-if os.path.exists(file_path):
-    # file already exists for the day then by pass
-    pass
-else:
+time_since_last_refresh = (datetime.datetime.now() - datetime.datetime.strptime(current['refresh_ts'], "%Y-%m-%d %H:%M:%S")).days
+
+if time_since_last_refresh >= 1: 
     headers = {
         'content-type': 'application/json',
         'api-key': os.getenv('API_BIBLE_KEY'),
@@ -65,4 +67,7 @@ else:
         # Write the data to the file
         json.dump(output, f, indent=4)
 
-    print(output['text'])
+    print('Updating Bible Chapter...')
+    print(output)
+else:
+    print('Bible Chapter is up-to-date')
